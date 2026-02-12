@@ -111,6 +111,10 @@ class YouTubeOptimizerApp:
         self.opt_seo = tk.BooleanVar(value=True)
         self.opt_shorts = tk.BooleanVar(value=False)
         self.opt_youtube_export = tk.BooleanVar(value=True)
+        self.opt_watermark = tk.BooleanVar(value=False)
+        self.opt_color_grade = tk.BooleanVar(value=False)
+        self.opt_chapters = tk.BooleanVar(value=False)
+        self.opt_adsense_check = tk.BooleanVar(value=True)
 
         options = [
             (self.opt_subtitle, "🔤 Auto Subtitle (Whisper AI)", 
@@ -121,14 +125,22 @@ class YouTubeOptimizerApp:
              "Normalize volume & bersihkan audio"),
             (self.opt_speed, "⏩ Speed Up 1.05x",
              "Percepat sedikit untuk pacing lebih baik"),
+            (self.opt_watermark, "💧 Watermark / Logo",
+             "Tambah watermark teks atau gambar ke video"),
+            (self.opt_color_grade, "🎨 Color Grading",
+             "Terapkan preset warna sinematik ke video"),
             (self.opt_thumbnail, "🖼️ Generate Thumbnail",
              "Buat thumbnail dari frame terbaik video"),
             (self.opt_seo, "🏷️ Generate Title & Tags SEO",
              "Buat judul, deskripsi, dan tags viral"),
+            (self.opt_chapters, "📑 Auto Generate Chapters",
+             "Buat timestamp chapter otomatis dari subtitle"),
             (self.opt_shorts, "📱 Buat YouTube Shorts",
              "Auto-crop bagian terbaik jadi Shorts vertikal"),
             (self.opt_youtube_export, "📤 Export YouTube-Ready",
              "Export dengan settings optimal YouTube"),
+            (self.opt_adsense_check, "✅ AdSense Readiness Check",
+             "Cek apakah video siap untuk monetisasi"),
         ]
 
         for var, text, tooltip in options:
@@ -184,6 +196,64 @@ class YouTubeOptimizerApp:
                                   values=["720p", "1080p", "1440p", "2160p"],
                                   width=10, state="readonly")
         res_combo.pack(side=tk.LEFT, padx=5)
+
+        # Watermark text
+        row4 = tk.Frame(settings_frame, bg=self.BG2)
+        row4.pack(fill=tk.X, pady=2)
+        tk.Label(row4, text="Watermark Text:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.watermark_text = tk.StringVar(value="")
+        wm_entry = tk.Entry(row4, textvariable=self.watermark_text,
+                            font=("Segoe UI", 10), bg="#3a3a5e", fg=self.FG,
+                            insertbackground=self.FG, relief=tk.FLAT, width=18)
+        wm_entry.pack(side=tk.LEFT, padx=5, ipady=2)
+        tk.Label(row4, text="(nama channel)", bg=self.BG2, fg="#888",
+                font=("Segoe UI", 8)).pack(side=tk.LEFT)
+
+        # Watermark logo file
+        row4b = tk.Frame(settings_frame, bg=self.BG2)
+        row4b.pack(fill=tk.X, pady=2)
+        tk.Label(row4b, text="Watermark Logo:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.watermark_logo = tk.StringVar(value="")
+        wm_logo_entry = tk.Entry(row4b, textvariable=self.watermark_logo,
+                                  font=("Segoe UI", 9), bg="#3a3a5e", fg=self.FG,
+                                  insertbackground=self.FG, relief=tk.FLAT, width=12)
+        wm_logo_entry.pack(side=tk.LEFT, padx=5, ipady=2)
+        tk.Button(row4b, text="📂", command=self._browse_logo,
+                 bg="#555", fg=self.FG, font=("Segoe UI", 9),
+                 relief=tk.FLAT, padx=5, cursor="hand2").pack(side=tk.LEFT)
+
+        # Color grading preset
+        row5 = tk.Frame(settings_frame, bg=self.BG2)
+        row5.pack(fill=tk.X, pady=2)
+        tk.Label(row5, text="Color Preset:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.color_preset = tk.StringVar(value="cinematic_warm")
+        color_combo = ttk.Combobox(row5, textvariable=self.color_preset,
+                                    values=["cinematic_warm", "cinematic_cool", "dramatic",
+                                            "vintage", "bright_pop", "dark_moody",
+                                            "golden_hour", "bw_dramatic", "teal_orange",
+                                            "enhance_only"],
+                                    width=16, state="readonly")
+        color_combo.pack(side=tk.LEFT, padx=5)
+
+        # Batch URLs file
+        row6 = tk.Frame(settings_frame, bg=self.BG2)
+        row6.pack(fill=tk.X, pady=2)
+        tk.Label(row6, text="Batch URLs File:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.batch_file = tk.StringVar(value="")
+        batch_entry = tk.Entry(row6, textvariable=self.batch_file,
+                               font=("Segoe UI", 9), bg="#3a3a5e", fg=self.FG,
+                               insertbackground=self.FG, relief=tk.FLAT, width=12)
+        batch_entry.pack(side=tk.LEFT, padx=5, ipady=2)
+        tk.Button(row6, text="📂", command=self._browse_batch_file,
+                 bg="#555", fg=self.FG, font=("Segoe UI", 9),
+                 relief=tk.FLAT, padx=5, cursor="hand2").pack(side=tk.LEFT)
+        tk.Button(row6, text="▶ Batch", command=self._start_batch,
+                 bg="#e67e22", fg=self.FG, font=("Segoe UI", 9, "bold"),
+                 relief=tk.FLAT, padx=8, cursor="hand2").pack(side=tk.LEFT, padx=3)
 
         # ===== START BUTTON =====
         tk.Button(
@@ -264,6 +334,83 @@ class YouTubeOptimizerApp:
             self.video_path_var.set(path)
             self._log(f"📂 Video dipilih: {path}")
 
+    def _browse_logo(self):
+        """Open file dialog to select watermark logo image."""
+        path = filedialog.askopenfilename(
+            title="Pilih Logo Watermark",
+            filetypes=[
+                ("Image files", "*.png *.jpg *.jpeg *.bmp *.webp"),
+                ("All files", "*.*"),
+            ]
+        )
+        if path:
+            self.watermark_logo.set(path)
+            self._log(f"📂 Logo dipilih: {path}")
+
+    def _browse_batch_file(self):
+        """Open file dialog to select batch URLs text file."""
+        path = filedialog.askopenfilename(
+            title="Pilih File Batch URLs",
+            filetypes=[
+                ("Text files", "*.txt"),
+                ("All files", "*.*"),
+            ]
+        )
+        if path:
+            self.batch_file.set(path)
+            self._log(f"📂 Batch file dipilih: {path}")
+
+    def _start_batch(self):
+        """Start batch processing from a URLs file."""
+        batch_path = self.batch_file.get().strip()
+        if not batch_path or not os.path.exists(batch_path):
+            messagebox.showwarning("Warning", "Pilih file .txt berisi daftar URL YouTube dulu!")
+            return
+
+        def _run_batch():
+            try:
+                self._log("=" * 50)
+                self._log("🔄 BATCH PROCESSING DIMULAI...")
+                self._log("=" * 50)
+                self._update_status(5, "Starting batch...")
+
+                from app.batch import BatchProcessor
+                processor = BatchProcessor(output_dir=self.output_dir)
+
+                # Build options dict from current GUI settings
+                options = {
+                    'subtitle': self.opt_subtitle.get(),
+                    'silence_removal': self.opt_silence.get(),
+                    'audio_enhance': self.opt_audio_enhance.get(),
+                    'speed': self.opt_speed.get(),
+                    'thumbnail': self.opt_thumbnail.get(),
+                    'seo': self.opt_seo.get(),
+                    'shorts': self.opt_shorts.get(),
+                    'youtube_export': self.opt_youtube_export.get(),
+                    'whisper_model': self.whisper_model.get(),
+                    'language': self.language.get(),
+                    'resolution': self.resolution.get(),
+                }
+
+                results = processor.process_from_file(batch_path, options)
+                
+                success = sum(1 for r in results if r.get('status') == 'success')
+                total = len(results)
+                
+                self._log(f"\n🔄 Batch selesai: {success}/{total} berhasil")
+                self._update_status(100, f"Batch done: {success}/{total}")
+                
+                if os.name == 'nt':
+                    os.startfile(self.output_dir)
+                    
+            except Exception as e:
+                self._log(f"❌ Batch error: {str(e)}")
+                import traceback
+                self._log(traceback.format_exc())
+                messagebox.showerror("Error", f"Batch error:\n{str(e)}")
+
+        threading.Thread(target=_run_batch, daemon=True).start()
+
     def _download_video(self):
         """Download video dari URL."""
         url = self.url_var.get().strip()
@@ -319,11 +466,15 @@ class YouTubeOptimizerApp:
                     self.opt_audio_enhance.get(),
                     self.opt_silence.get(),
                     self.opt_speed.get(),
+                    self.opt_watermark.get(),
+                    self.opt_color_grade.get(),
                     self.opt_subtitle.get(),
                     self.opt_thumbnail.get(),
                     self.opt_seo.get(),
+                    self.opt_chapters.get(),
                     self.opt_shorts.get(),
                     self.opt_youtube_export.get(),
+                    self.opt_adsense_check.get(),
                 ])
                 
                 if total_steps == 0:
@@ -367,6 +518,38 @@ class YouTubeOptimizerApp:
                     editor.set_progress_callback(step_progress)
                     current_video = editor.adjust_speed(current_video, speed=1.05)
                     self._log(f"✅ Speed adjusted: {current_video}")
+
+                # Step 3b: Watermark
+                if self.opt_watermark.get():
+                    step += 1
+                    self._log(f"\n[{step}/{total_steps}] 💧 Adding watermark...")
+                    from app.watermark import WatermarkOverlay
+                    wm = WatermarkOverlay(output_dir=self.output_dir)
+                    wm_text = self.watermark_text.get().strip()
+                    wm_logo = self.watermark_logo.get().strip()
+                    
+                    if wm_logo and os.path.exists(wm_logo):
+                        current_video = wm.add_image_watermark(
+                            current_video, wm_logo, position="top-right", opacity=0.7, scale=0.12
+                        )
+                        self._log(f"✅ Logo watermark added: {current_video}")
+                    elif wm_text:
+                        current_video = wm.add_text_watermark(
+                            current_video, wm_text, position="top-right", font_size=28, opacity=0.6
+                        )
+                        self._log(f"✅ Text watermark added: {current_video}")
+                    else:
+                        self._log("⚠️ Watermark diaktifkan tapi tidak ada teks/logo. Dilewati.")
+
+                # Step 3c: Color Grading
+                if self.opt_color_grade.get():
+                    step += 1
+                    preset_name = self.color_preset.get()
+                    self._log(f"\n[{step}/{total_steps}] 🎨 Applying color grading: {preset_name}...")
+                    from app.color_grading import ColorGrading
+                    cg = ColorGrading(output_dir=self.output_dir)
+                    current_video = cg.apply_preset(current_video, preset_name)
+                    self._log(f"✅ Color grading applied: {current_video}")
 
                 # Step 4: Auto Subtitle
                 if self.opt_subtitle.get():
@@ -456,6 +639,31 @@ class YouTubeOptimizerApp:
                     shorts_path = editor.create_shorts_clip(current_video, 0, 60)
                     self._log(f"✅ Shorts clip: {shorts_path}")
 
+                # Step 7b: Auto Chapters
+                if self.opt_chapters.get():
+                    step += 1
+                    self._log(f"\n[{step}/{total_steps}] 📑 Generating chapter timestamps...")
+                    from app.chapter_generator import ChapterGenerator
+                    ch_gen = ChapterGenerator(output_dir=self.output_dir)
+                    
+                    # Try to use SRT from subtitle step
+                    srt_path = os.path.join(self.output_dir, "subtitle.srt")
+                    if os.path.exists(srt_path):
+                        chapters = ch_gen.generate_from_srt(srt_path)
+                        self._log(f"✅ {len(chapters)} chapters generated from SRT")
+                    else:
+                        chapters = ch_gen.generate_from_transcription(current_video,
+                            language=self.language.get() if self.language.get() != "auto" else None)
+                        self._log(f"✅ {len(chapters)} chapters generated from audio analysis")
+                    
+                    ch_path = ch_gen.save_chapters(chapters)
+                    formatted = ch_gen.format_timestamps(chapters)
+                    self._log(f"📑 Chapters saved: {ch_path}")
+                    self._log(f"   Preview:\n{formatted[:500]}")
+                    
+                    # Add to SEO text
+                    self.seo_text.insert(tk.END, f"\n\n📑 CHAPTERS:\n{formatted}")
+
                 # Step 8: YouTube Export
                 if self.opt_youtube_export.get():
                     step += 1
@@ -468,6 +676,23 @@ class YouTubeOptimizerApp:
                     )
                     self._log(f"✅ Final video: {final_video}")
                     current_video = final_video
+
+                # Step 8b: AdSense Readiness Check
+                if self.opt_adsense_check.get():
+                    step += 1
+                    self._log(f"\n[{step}/{total_steps}] ✅ Running AdSense readiness check...")
+                    from app.adsense_checker import AdSenseChecker
+                    checker = AdSenseChecker()
+                    report = checker.check_video(current_video)
+                    formatted_report = checker.format_report(report)
+                    self._log(formatted_report)
+                    
+                    # Show in SEO panel
+                    self.seo_text.insert(tk.END, f"\n\n✅ ADSENSE CHECK:\n")
+                    self.seo_text.insert(tk.END, f"Score: {report['score']}/100 ({report['grade']})\n")
+                    if report.get('recommendations'):
+                        for rec in report['recommendations']:
+                            self.seo_text.insert(tk.END, f"  💡 {rec}\n")
 
                 # DONE!
                 self._log("\n" + "=" * 50)
