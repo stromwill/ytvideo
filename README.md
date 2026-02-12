@@ -21,6 +21,10 @@ Tool desktop Python untuk **mengoptimasi video YouTube milik sendiri** agar lebi
 | 📱 Shorts | Auto-crop jadi YouTube Shorts vertikal |
 | ✅ AdSense Check | Cek kesiapan video untuk monetisasi (score & saran) |
 | 🔄 Batch Processing | Proses banyak video sekaligus dari file URL |
+| 🌍 Translate Subtitle | Terjemahkan subtitle ke 16+ bahasa (Google Translate) |
+| 🎬 Intro / Outro | Auto-sisipkan intro & outro branded ke video |
+| 📊 Video Analytics | Dashboard analisis detail (bitrate, fps, codec, resolution) |
+| 📱 Multi-Platform Export | Export untuk TikTok, Instagram Reels, Facebook, Twitter |
 
 ## Requirements
 
@@ -75,7 +79,11 @@ youtube/
 │   ├── color_grading.py   # Color grading presets (10 presets)
 │   ├── chapter_generator.py # Auto chapter timestamps
 │   ├── adsense_checker.py # AdSense readiness checker
-│   └── batch.py           # Batch URL processing
+│   ├── batch.py           # Batch URL processing
+│   ├── translator.py      # Auto translate subtitle (16+ bahasa)
+│   ├── intro_outro.py     # Intro/outro branded template
+│   ├── analytics.py       # Video analytics dashboard
+│   └── multi_export.py    # Multi-platform export (TikTok, IG, FB)
 ├── temp/                   # Temporary files
 └── output/                 # Output files
 ```

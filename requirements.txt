@@ -6,3 +6,4 @@ moviepy>=1.0.3
 pysrt>=1.1.2
 customtkinter>=5.2.0
 CTkMessagebox>=2.5
+deep-translator>=1.11.0

@@ -18,8 +18,8 @@ class YouTubeOptimizerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("🎬 YouTube Video Optimizer - AdSense Ready")
-        self.root.geometry("1100x750")
-        self.root.minsize(900, 600)
+        self.root.geometry("1200x850")
+        self.root.minsize(1000, 700)
         
         # Colors
         self.BG = "#1e1e2e"
@@ -57,9 +57,25 @@ class YouTubeOptimizerApp:
         main_frame = tk.Frame(self.root, bg=self.BG)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
 
-        # ===== LEFT PANEL: Input & Controls =====
-        left_panel = tk.Frame(main_frame, bg=self.BG2, width=500)
-        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        # ===== LEFT PANEL: Input & Controls (Scrollable) =====
+        left_outer = tk.Frame(main_frame, bg=self.BG2, width=520)
+        left_outer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+
+        left_canvas = tk.Canvas(left_outer, bg=self.BG2, highlightthickness=0)
+        left_scrollbar = ttk.Scrollbar(left_outer, orient="vertical", command=left_canvas.yview)
+        left_panel = tk.Frame(left_canvas, bg=self.BG2)
+
+        left_panel.bind("<Configure>", lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
+        left_canvas.create_window((0, 0), window=left_panel, anchor="nw")
+        left_canvas.configure(yscrollcommand=left_scrollbar.set)
+
+        left_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        left_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Mouse wheel scrolling
+        def _on_mousewheel(event):
+            left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # --- Input Section ---
         self._section_label(left_panel, "📥 INPUT VIDEO")
@@ -115,10 +131,16 @@ class YouTubeOptimizerApp:
         self.opt_color_grade = tk.BooleanVar(value=False)
         self.opt_chapters = tk.BooleanVar(value=False)
         self.opt_adsense_check = tk.BooleanVar(value=True)
+        self.opt_translate = tk.BooleanVar(value=False)
+        self.opt_intro_outro = tk.BooleanVar(value=False)
+        self.opt_analytics = tk.BooleanVar(value=True)
+        self.opt_multi_export = tk.BooleanVar(value=False)
 
         options = [
             (self.opt_subtitle, "🔤 Auto Subtitle (Whisper AI)", 
              "Generate & burn subtitle otomatis ke video"),
+            (self.opt_translate, "🌍 Translate Subtitle",
+             "Terjemahkan subtitle ke bahasa lain"),
             (self.opt_silence, "✂️ Hapus Dead Air / Silence",
              "Auto-cut bagian diam yang terlalu lama"),
             (self.opt_audio_enhance, "🔊 Enhance Audio",
@@ -129,6 +151,8 @@ class YouTubeOptimizerApp:
              "Tambah watermark teks atau gambar ke video"),
             (self.opt_color_grade, "🎨 Color Grading",
              "Terapkan preset warna sinematik ke video"),
+            (self.opt_intro_outro, "🎬 Intro / Outro",
+             "Sisipkan intro & outro branded otomatis"),
             (self.opt_thumbnail, "🖼️ Generate Thumbnail",
              "Buat thumbnail dari frame terbaik video"),
             (self.opt_seo, "🏷️ Generate Title & Tags SEO",
@@ -139,6 +163,10 @@ class YouTubeOptimizerApp:
              "Auto-crop bagian terbaik jadi Shorts vertikal"),
             (self.opt_youtube_export, "📤 Export YouTube-Ready",
              "Export dengan settings optimal YouTube"),
+            (self.opt_multi_export, "📱 Multi-Platform Export",
+             "Export untuk TikTok, IG Reels, Facebook"),
+            (self.opt_analytics, "📊 Video Analytics",
+             "Analisis detail video (bitrate, fps, codec)"),
             (self.opt_adsense_check, "✅ AdSense Readiness Check",
              "Cek apakah video siap untuk monetisasi"),
         ]
@@ -255,6 +283,70 @@ class YouTubeOptimizerApp:
                  bg="#e67e22", fg=self.FG, font=("Segoe UI", 9, "bold"),
                  relief=tk.FLAT, padx=8, cursor="hand2").pack(side=tk.LEFT, padx=3)
 
+        # Translate target language
+        row7 = tk.Frame(settings_frame, bg=self.BG2)
+        row7.pack(fill=tk.X, pady=2)
+        tk.Label(row7, text="Translate ke:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.translate_target = tk.StringVar(value="en")
+        trans_combo = ttk.Combobox(row7, textvariable=self.translate_target,
+                                    values=["en", "id", "ms", "zh-CN", "ja", "ko",
+                                            "hi", "ar", "es", "fr", "de", "pt",
+                                            "ru", "th", "vi", "tl"],
+                                    width=10, state="readonly")
+        trans_combo.pack(side=tk.LEFT, padx=5)
+        tk.Label(row7, text="(bahasa tujuan)", bg=self.BG2, fg="#888",
+                font=("Segoe UI", 8)).pack(side=tk.LEFT)
+
+        # Intro/Outro channel name
+        row8 = tk.Frame(settings_frame, bg=self.BG2)
+        row8.pack(fill=tk.X, pady=2)
+        tk.Label(row8, text="Channel Name:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.channel_name = tk.StringVar(value="Film Pendek Pahm")
+        ch_entry = tk.Entry(row8, textvariable=self.channel_name,
+                            font=("Segoe UI", 10), bg="#3a3a5e", fg=self.FG,
+                            insertbackground=self.FG, relief=tk.FLAT, width=18)
+        ch_entry.pack(side=tk.LEFT, padx=5, ipady=2)
+
+        # Custom intro/outro file
+        row8b = tk.Frame(settings_frame, bg=self.BG2)
+        row8b.pack(fill=tk.X, pady=2)
+        tk.Label(row8b, text="Intro Video:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.intro_file = tk.StringVar(value="")
+        intro_entry = tk.Entry(row8b, textvariable=self.intro_file,
+                               font=("Segoe UI", 9), bg="#3a3a5e", fg=self.FG,
+                               insertbackground=self.FG, relief=tk.FLAT, width=12)
+        intro_entry.pack(side=tk.LEFT, padx=5, ipady=2)
+        tk.Button(row8b, text="📂", command=lambda: self._browse_video_to(self.intro_file),
+                 bg="#555", fg=self.FG, font=("Segoe UI", 9),
+                 relief=tk.FLAT, padx=5, cursor="hand2").pack(side=tk.LEFT)
+
+        row8c = tk.Frame(settings_frame, bg=self.BG2)
+        row8c.pack(fill=tk.X, pady=2)
+        tk.Label(row8c, text="Outro Video:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.outro_file = tk.StringVar(value="")
+        outro_entry = tk.Entry(row8c, textvariable=self.outro_file,
+                               font=("Segoe UI", 9), bg="#3a3a5e", fg=self.FG,
+                               insertbackground=self.FG, relief=tk.FLAT, width=12)
+        outro_entry.pack(side=tk.LEFT, padx=5, ipady=2)
+        tk.Button(row8c, text="📂", command=lambda: self._browse_video_to(self.outro_file),
+                 bg="#555", fg=self.FG, font=("Segoe UI", 9),
+                 relief=tk.FLAT, padx=5, cursor="hand2").pack(side=tk.LEFT)
+
+        # Multi-platform export targets
+        row9 = tk.Frame(settings_frame, bg=self.BG2)
+        row9.pack(fill=tk.X, pady=2)
+        tk.Label(row9, text="Export Platforms:", bg=self.BG2, fg=self.FG,
+                font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.export_platforms_var = tk.StringVar(value="tiktok,instagram_reels,facebook")
+        plat_entry = tk.Entry(row9, textvariable=self.export_platforms_var,
+                              font=("Segoe UI", 9), bg="#3a3a5e", fg=self.FG,
+                              insertbackground=self.FG, relief=tk.FLAT, width=25)
+        plat_entry.pack(side=tk.LEFT, padx=5, ipady=2)
+
         # ===== START BUTTON =====
         tk.Button(
             left_panel, text="🚀  MULAI OPTIMASI  🚀",
@@ -333,6 +425,19 @@ class YouTubeOptimizerApp:
         if path:
             self.video_path_var.set(path)
             self._log(f"📂 Video dipilih: {path}")
+
+    def _browse_video_to(self, target_var):
+        """Browse for a video file and set to target StringVar."""
+        path = filedialog.askopenfilename(
+            title="Pilih Video",
+            filetypes=[
+                ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"),
+                ("All files", "*.*"),
+            ]
+        )
+        if path:
+            target_var.set(path)
+            self._log(f"📂 File dipilih: {path}")
 
     def _browse_logo(self):
         """Open file dialog to select watermark logo image."""
@@ -468,12 +573,16 @@ class YouTubeOptimizerApp:
                     self.opt_speed.get(),
                     self.opt_watermark.get(),
                     self.opt_color_grade.get(),
+                    self.opt_intro_outro.get(),
                     self.opt_subtitle.get(),
+                    self.opt_translate.get(),
                     self.opt_thumbnail.get(),
                     self.opt_seo.get(),
                     self.opt_chapters.get(),
                     self.opt_shorts.get(),
                     self.opt_youtube_export.get(),
+                    self.opt_multi_export.get(),
+                    self.opt_analytics.get(),
                     self.opt_adsense_check.get(),
                 ])
                 
@@ -551,6 +660,29 @@ class YouTubeOptimizerApp:
                     current_video = cg.apply_preset(current_video, preset_name)
                     self._log(f"✅ Color grading applied: {current_video}")
 
+                # Step 3d: Intro / Outro
+                if self.opt_intro_outro.get():
+                    step += 1
+                    self._log(f"\n[{step}/{total_steps}] 🎬 Adding intro/outro...")
+                    from app.intro_outro import IntroOutroManager
+                    io_mgr = IntroOutroManager(output_dir=self.output_dir)
+                    
+                    intro_p = self.intro_file.get().strip() or None
+                    outro_p = self.outro_file.get().strip() or None
+                    ch_name = self.channel_name.get().strip() or "Film Pendek Pahm"
+                    
+                    if intro_p and not os.path.exists(intro_p):
+                        intro_p = None
+                    if outro_p and not os.path.exists(outro_p):
+                        outro_p = None
+                    
+                    current_video = io_mgr.full_pipeline(
+                        current_video, channel_name=ch_name,
+                        intro_path=intro_p, outro_path=outro_p,
+                        auto_generate=(not intro_p or not outro_p)
+                    )
+                    self._log(f"✅ Intro/outro added: {current_video}")
+
                 # Step 4: Auto Subtitle
                 if self.opt_subtitle.get():
                     step += 1
@@ -580,6 +712,31 @@ class YouTubeOptimizerApp:
                         current_video = result['video_output']
                     self._log(f"✅ Subtitle generated & burned: {current_video}")
                     self._log(f"   Subtitle file: {result['subtitle_path']}")
+
+                # Step 4b: Translate Subtitle
+                if self.opt_translate.get():
+                    step += 1
+                    target_lang = self.translate_target.get()
+                    self._log(f"\n[{step}/{total_steps}] 🌍 Translating subtitle to {target_lang}...")
+                    from app.translator import SubtitleTranslator
+                    translator = SubtitleTranslator(output_dir=self.output_dir)
+                    
+                    # Find subtitle file from previous step or output dir
+                    sub_file = None
+                    for ext in ['.srt', '.ass']:
+                        candidate = os.path.join(self.output_dir, f"subtitle{ext}")
+                        if os.path.exists(candidate):
+                            sub_file = candidate
+                            break
+                    
+                    if sub_file:
+                        src_lang = self.language.get() if self.language.get() != 'auto' else 'id'
+                        translated_path = translator.translate_subtitle(
+                            sub_file, source_lang=src_lang, target_lang=target_lang
+                        )
+                        self._log(f"✅ Subtitle translated: {translated_path}")
+                    else:
+                        self._log("⚠️ Tidak ada file subtitle ditemukan. Aktifkan Auto Subtitle dulu.")
 
                 # Step 5: Thumbnail
                 if self.opt_thumbnail.get():
@@ -677,7 +834,46 @@ class YouTubeOptimizerApp:
                     self._log(f"✅ Final video: {final_video}")
                     current_video = final_video
 
-                # Step 8b: AdSense Readiness Check
+                # Step 8b: Multi-Platform Export
+                if self.opt_multi_export.get():
+                    step += 1
+                    platforms_str = self.export_platforms_var.get().strip()
+                    platforms = [p.strip() for p in platforms_str.split(',') if p.strip()]
+                    self._log(f"\n[{step}/{total_steps}] 📱 Multi-platform export: {', '.join(platforms)}...")
+                    from app.multi_export import MultiPlatformExporter
+                    exporter = MultiPlatformExporter(output_dir=self.output_dir)
+                    results = exporter.export_multi(current_video, platforms=platforms)
+                    report_text = exporter.format_export_report(results)
+                    self._log(report_text)
+                    
+                    self.seo_text.insert(tk.END, f"\n\n📱 MULTI-PLATFORM EXPORT:\n")
+                    for plat, res in results.items():
+                        if res['status'] == 'success':
+                            self.seo_text.insert(tk.END, f"  ✅ {res['platform_name']}: {res['size_mb']}MB\n")
+                        else:
+                            self.seo_text.insert(tk.END, f"  ❌ {res['platform_name']}: {res['error']}\n")
+
+                # Step 8c: Video Analytics
+                if self.opt_analytics.get():
+                    step += 1
+                    self._log(f"\n[{step}/{total_steps}] 📊 Analyzing video...")
+                    from app.analytics import VideoAnalytics
+                    analyzer = VideoAnalytics()
+                    stats = analyzer.analyze(current_video)
+                    report_text = analyzer.format_report(stats)
+                    self._log(report_text)
+                    
+                    self.seo_text.insert(tk.END, f"\n\n📊 VIDEO ANALYTICS:\n")
+                    v = stats.get('video', {})
+                    a = stats.get('audio', {})
+                    self.seo_text.insert(tk.END, f"  Duration: {stats['duration_formatted']}\n")
+                    self.seo_text.insert(tk.END, f"  Size: {stats['file_size_mb']}MB\n")
+                    if v:
+                        self.seo_text.insert(tk.END, f"  Video: {v.get('resolution','')} {v.get('fps','')}fps {v.get('codec','')}\n")
+                    if a:
+                        self.seo_text.insert(tk.END, f"  Audio: {a.get('codec','')} {a.get('bitrate_kbps','')}kbps\n")
+
+                # Step 8d: AdSense Readiness Check
                 if self.opt_adsense_check.get():
                     step += 1
                     self._log(f"\n[{step}/{total_steps}] ✅ Running AdSense readiness check...")
