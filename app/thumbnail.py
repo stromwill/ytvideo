@@ -6,6 +6,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import subprocess
 import json
+from app.ffmpeg_util import get_ffmpeg_path, get_ffprobe_path
 
 
 class ThumbnailGenerator:
@@ -15,6 +16,8 @@ class ThumbnailGenerator:
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         self.YOUTUBE_SIZE = (1280, 720)  # Standard YouTube thumbnail
+        self.ffmpeg = get_ffmpeg_path()
+        self.ffprobe = get_ffprobe_path()
 
     def extract_best_frames(self, video_path, num_frames=10, output_prefix="frame"):
         """
@@ -34,7 +37,7 @@ class ThumbnailGenerator:
 
         # Dapatkan durasi video
         probe_cmd = [
-            'ffprobe', '-v', 'quiet', '-print_format', 'json',
+            self.ffprobe or self.ffmpeg, '-v', 'quiet', '-print_format', 'json',
             '-show_format', video_path
         ]
         result = subprocess.run(probe_cmd, capture_output=True, text=True)
@@ -50,7 +53,7 @@ class ThumbnailGenerator:
             output_path = os.path.join(frames_dir, f"{output_prefix}_{i:03d}.jpg")
             
             cmd = [
-                'ffmpeg', '-y',
+                self.ffmpeg, '-y',
                 '-ss', str(timestamp),
                 '-i', video_path,
                 '-vframes', '1',

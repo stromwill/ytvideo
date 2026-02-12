@@ -5,6 +5,7 @@ Lalu burn subtitle ke video menggunakan FFmpeg
 import os
 import json
 import subprocess
+from app.ffmpeg_util import get_ffmpeg_path
 
 
 class AutoSubtitler:
@@ -24,6 +25,7 @@ class AutoSubtitler:
         self.output_dir = output_dir
         self.model = None
         self.progress_callback = None
+        self.ffmpeg = get_ffmpeg_path()
         os.makedirs(output_dir, exist_ok=True)
 
     def set_progress_callback(self, callback):
@@ -213,7 +215,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             vf = f"subtitles='{sub_path_escaped}':force_style='{subtitle_style}'"
 
         cmd = [
-            'ffmpeg', '-y',
+            self.ffmpeg, '-y',
             '-i', video_path,
             '-vf', vf,
             '-c:a', 'copy',

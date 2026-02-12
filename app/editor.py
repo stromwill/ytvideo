@@ -5,6 +5,7 @@ Menggunakan FFmpeg untuk processing video
 import os
 import subprocess
 import json
+from app.ffmpeg_util import get_ffmpeg_path, get_ffprobe_path
 
 
 class VideoEditor:
@@ -14,6 +15,8 @@ class VideoEditor:
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         self.progress_callback = None
+        self.ffmpeg = get_ffmpeg_path()
+        self.ffprobe = get_ffprobe_path()
 
     def set_progress_callback(self, callback):
         self.progress_callback = callback
@@ -24,6 +27,11 @@ class VideoEditor:
 
     def _run_ffmpeg(self, cmd, description="Processing..."):
         """Run FFmpeg command dengan error handling."""
+        # Replace 'ffmpeg' with actual path
+        if cmd[0] == 'ffmpeg':
+            cmd[0] = self.ffmpeg
+        elif cmd[0] == 'ffprobe':
+            cmd[0] = self.ffprobe or self.ffmpeg
         self._update_progress(50, description)
         process = subprocess.run(cmd, capture_output=True, text=True)
         if process.returncode != 0:
@@ -32,16 +40,34 @@ class VideoEditor:
 
     def get_video_info(self, video_path):
         """Ambil informasi detail video menggunakan ffprobe."""
-        cmd = [
-            'ffprobe', '-v', 'quiet',
-            '-print_format', 'json',
-            '-show_format', '-show_streams',
-            video_path
-        ]
+        probe_exe = self.ffprobe or self.ffmpeg
+        if self.ffprobe:
+            cmd = [
+                probe_exe, '-v', 'quiet',
+                '-print_format', 'json',
+                '-show_format', '-show_streams',
+                video_path
+            ]
+        else:
+            # Fallback: use ffmpeg -i
+            cmd = [
+                self.ffmpeg, '-i', video_path,
+                '-f', 'null', '-'
+            ]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
+        if self.ffprobe and result.returncode != 0:
             raise RuntimeError(f"ffprobe error: {result.stderr}")
-        return json.loads(result.stdout)
+        return json.loads(result.stdout) if self.ffprobe else self._parse_ffmpeg_info(result.stderr)
+
+    def _parse_ffmpeg_info(self, stderr_output):
+        """Parse FFmpeg -i output when ffprobe is not available."""
+        import re
+        duration = 0.0
+        duration_match = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', stderr_output)
+        if duration_match:
+            h, m, s, cs = duration_match.groups()
+            duration = int(h) * 3600 + int(m) * 60 + int(s) + int(cs) / 100.0
+        return {'format': {'duration': str(duration)}}
 
     def detect_silence(self, video_path, noise_threshold="-30dB", min_duration=2.0):
         """
@@ -59,7 +85,7 @@ class VideoEditor:
         self._update_progress(20, "Mendeteksi bagian diam...")
 
         cmd = [
-            'ffmpeg', '-i', video_path,
+            self.ffmpeg, '-i', video_path,
             '-af', f'silencedetect=noise={noise_threshold}:d={min_duration}',
             '-f', 'null', '-'
         ]
@@ -111,7 +137,7 @@ class VideoEditor:
         if not silences:
             self._update_progress(100, "Tidak ada silence yang perlu dihapus")
             # Copy file as-is
-            subprocess.run(['ffmpeg', '-y', '-i', video_path, '-c', 'copy', output_path],
+            subprocess.run([self.ffmpeg, '-y', '-i', video_path, '-c', 'copy', output_path],
                          capture_output=True)
             return output_path
 
